@@ -1,0 +1,24 @@
+# Sound Level Meter
+
+## Overview
+This repository contains a simple Sound Level Meter application that uses a microphone to capture sound levels and display them in real-time using a bar chart. The application also allows you to set a maximum sound level threshold.
+
+## Technologies Used
+- HTML5
+- JavaScript
+- Chart.js library
+- chartjs-plugin-annotation library
+
+## Features
+- Captures real-time sound levels from the microphone.
+- Displays the sound level in a bar chart.
+- Allows you to set a maximum sound level threshold via a spinner control.
+- Changes the background color of the canvas if the sound level exceeds the set threshold.
+
+## How to Use
+1. Open `index.html` in a web browser.
+2. Click the "Start Microphone" button to start capturing sound.
+3. Use the spinner control to set the maximum sound level threshold.
+
+## License
+MIT
