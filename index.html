@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Sound Level Meter</title>
+  <title>Sound Level Meter and Alerter</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.2/chartjs-plugin-annotation.min.js"></script>
   <style>
@@ -17,6 +18,7 @@
       font-size: 18px;
     }
     .labels, .values {
+      font-size: 14px;
       display: flex;
       flex-direction: column;
       align-items: flex-start;
@@ -32,6 +34,7 @@
     }
     .label {
       color: black;
+      font-weight: bold;
     }
     .value {
       color: green;
@@ -40,14 +43,23 @@
       max-height: 70vh;
       width: auto;
     }
+    #maxLevelSpinner {
+      max-width: 48px;
+    }
   </style>
 </head>
 <body>
-  <button id="startButton">Start Microphone</button>
-  <div class="info">
+  <button id="microphoneButton">Start Microphone</button>
+  <div class="input-group mb-3">
+    <div class="input-group-prepend">
+      <span class="input-group-text">Max Level</span>
+    </div>
+    <input type="number" id="maxLevelSpinner" class="form-control" step="5" min="0" max="80" value="30">
+  </div>
+    <div class="info">
     <div class="labels">
-      <div class="label">Sound Level:</div>
-      <div class="label">MAX Level:</div>
+      <div class="label">Sound Level</div>
+      <div class="label">MAX Level</div>
     </div>
     <div class="values">
       <div class="value" id="soundLevel"></div>

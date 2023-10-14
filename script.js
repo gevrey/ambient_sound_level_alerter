@@ -4,17 +4,22 @@ document.addEventListener("DOMContentLoaded", function() {
   const ChartAnnotation = window['chartjs-plugin-annotation'];
   Chart.register(ChartAnnotation);
 
-  const startButton = document.getElementById("startButton");
+  const microphoneButton = document.getElementById("microphoneButton");
   const soundLevelDiv = document.getElementById("soundLevel");
   const maxSoundLevelDiv = document.getElementById("maxSoundLevel");
   const canvasDiv = document.getElementById("soundLevelChart");
   const ctx = canvasDiv.getContext("2d");
-  const maxLevel = 25;
+  
 
   const bufferSize = 240; 
   let circularBuffer = new Array(bufferSize).fill(null); 
   let timeBuffer = new Array(bufferSize).fill(0);
   let writeIndex = 0;
+  let maxLevel = 20;
+
+  const maxLevelSpinner = document.getElementById("maxLevelSpinner");
+  maxLevelSpinner.value = maxLevel; // Initialize the spinner with the initial maxLevel value
+
 
   const chart = new Chart(ctx, {
     type: 'bar',
@@ -62,7 +67,7 @@ document.addEventListener("DOMContentLoaded", function() {
             text: 'Elapsed Time (s)'
           }
         },
-        y: { min: 0, max: 80 }
+        y: { min: 0, max: 60 }
       }
     }
   });
@@ -123,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function() {
     computeSoundLevel();
   };
 
-  startButton.addEventListener("click", function() {
+  microphoneButton.addEventListener("click", function() {
     navigator.mediaDevices.getUserMedia({ audio: true, video: false })
       .then(handleSuccess)
       .then(() => {
@@ -131,5 +136,24 @@ document.addEventListener("DOMContentLoaded", function() {
           audioContext.resume();
         }
       });
+  
+    
+    if (microphoneButton.innerHTML === 'Start Microphone') {
+      microphoneButton.innerHTML = 'Stop Microphone';
+      // Code to start the microphone and update the graph goes here
+      // ...
+    } else {
+      microphoneButton.innerHTML = 'Start Microphone';
+      location.reload();
+    }
   });
+
+  // Update maxLevel when the spinner value changes
+  maxLevelSpinner.addEventListener('change', function() {
+    maxLevel = parseInt(this.value, 10);
+    chart.options.plugins.annotation.annotations[0].value = maxLevel;
+    chart.options.plugins.annotation.annotations[0].borderColor = blue;
+    maxSoundLevelDiv.innerHTML = `${maxLevel}`;
+    chart.update();
+  });  
 });
