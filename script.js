@@ -1,5 +1,9 @@
 document.addEventListener("DOMContentLoaded", function() {
 
+  // Register the annotation plugin
+  const ChartAnnotation = window['chartjs-plugin-annotation'];
+  Chart.register(ChartAnnotation);
+
   const startButton = document.getElementById("startButton");
   const soundLevelDiv = document.getElementById("soundLevel");
   const maxSoundLevelDiv = document.getElementById("maxSoundLevel");
@@ -25,6 +29,18 @@ document.addEventListener("DOMContentLoaded", function() {
       }]
     },
     options: {
+      plugins: {
+        annotation: {
+          annotations: [{
+            type: 'line',
+            mode: 'horizontal',
+            scaleID: 'y',
+            value: maxLevel,
+            borderColor: 'red',
+            borderWidth: 2
+          }]
+        }
+      },
       animation: false,
       title: {
         display: true,
