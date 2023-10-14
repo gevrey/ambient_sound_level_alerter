@@ -39,6 +39,9 @@
     .value {
       color: green;
     }
+    .input-group.mb-3 {
+      padding-top: 20px;
+    }
     canvas {
       max-height: 70vh;
       width: auto;
@@ -54,7 +57,17 @@
     <div class="input-group-prepend">
       <span class="input-group-text">Max Level</span>
     </div>
+
+    <!--
+    <div class="qty mt-5">
+      <span class="minus bg-dark">-</span>
+      <input type="number" id="maxLevelSpinner" class="count" name="maxSoundLevel" value="10">
+      <span class="plus bg-dark">+</span>
+    </div>
+     --> 
+     
     <input type="number" id="maxLevelSpinner" class="form-control" step="5" min="0" max="80" value="30">
+
   </div>
     <div class="info">
     <div class="labels">
