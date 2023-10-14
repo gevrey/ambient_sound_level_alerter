@@ -2,8 +2,10 @@ document.addEventListener("DOMContentLoaded", function() {
 
   const startButton = document.getElementById("startButton");
   const soundLevelDiv = document.getElementById("soundLevel");
+  const maxSoundLevelDiv = document.getElementById("maxSoundLevel");
   const canvasDiv = document.getElementById("soundLevelChart");
   const ctx = canvasDiv.getContext("2d");
+  const maxLevel = 25;
 
   const bufferSize = 240; 
   let circularBuffer = new Array(bufferSize).fill(null); 
@@ -11,17 +13,30 @@ document.addEventListener("DOMContentLoaded", function() {
   let writeIndex = 0;
 
   const chart = new Chart(ctx, {
-    type: 'line',
+    type: 'bar',
     data: {
       labels: timeBuffer,
       datasets: [{
         label: 'Sound Level',
         data: circularBuffer,
         borderColor: 'rgba(75, 192, 192, 1)',
+        backgroundColor: 'green',  // Add this line to make the bar green
         fill: false
       }]
     },
     options: {
+      animation: false,
+      title: {
+        display: true,
+        text: 'My Chart'
+      },
+      legend: {
+        display: true,
+      },
+      tooltips: {
+        enabled: true,
+        mode: 'index'
+      },
       scales: {
         x: {
           type: 'linear',
@@ -31,7 +46,7 @@ document.addEventListener("DOMContentLoaded", function() {
             text: 'Elapsed Time (s)'
           }
         },
-        y: { min: 0, max: 256 }
+        y: { min: 0, max: 80 }
       }
     }
   });
@@ -62,7 +77,8 @@ document.addEventListener("DOMContentLoaded", function() {
       const average = sum / bufferLength;
       const elapsedSeconds = (new Date() - startTime) / 1000;
 
-      soundLevelDiv.innerHTML = `Sound Level: ${average.toFixed(2)}`;
+      soundLevelDiv.innerHTML = `${average.toFixed(2)}`;
+      maxSoundLevelDiv.innerHTML = `${maxLevel}`;
 
       // Handle buffer wrap-around
       if (writeIndex === 0) {
@@ -76,7 +92,7 @@ document.addEventListener("DOMContentLoaded", function() {
       writeIndex = (writeIndex + 1) % bufferSize;
 
       // Check sound level and transition background color
-      if (average > 40) {
+      if (average > maxLevel) {
         canvasDiv.style.transition = "background-color 1s";
 		// lightblue
         canvasDiv.style.backgroundColor = "indianred";

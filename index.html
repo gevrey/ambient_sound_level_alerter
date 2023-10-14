@@ -2,12 +2,58 @@
 <html>
 <head>
   <title>Sound Level Meter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      text-align: center;
+    }
+    #startButton {
+      padding: 10px 20px;
+      font-size: 18px;
+    }
+    .labels, .values {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .values {
+      margin-left: 20px;  /* Adds space to the left of the values */
+    }
+    .info {
+      display: flex;
+      justify-content: flex-start;
+      font-size: 24px;
+      margin-top: 10px;
+    }
+    .label {
+      color: black;
+    }
+    .value {
+      color: green;
+    }
+    canvas {
+      max-height: 70vh;
+      width: auto;
+    }
+  </style>
 </head>
 <body>
   <button id="startButton">Start Microphone</button>
-  <div id="soundLevel"></div>
-  <canvas id="soundLevelChart" width="400" height="200"></canvas>
+  <div class="info">
+    <div class="labels">
+      <div class="label">Sound Level:</div>
+      <div class="label">MAX Level:</div>
+    </div>
+    <div class="values">
+      <div class="value" id="soundLevel"></div>
+      <div class="value" id="maxSoundLevel"></div>
+    </div>
+  </div>
+  <canvas id="soundLevelChart"></canvas>
   <script src="script.js"></script>
 </body>
 </html>
