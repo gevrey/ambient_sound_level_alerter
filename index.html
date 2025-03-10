@@ -1,85 +1,265 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Sound Level Meter and Alerter</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sound Level Meter</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/1.0.2/chartjs-plugin-annotation.min.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
+      margin: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
       padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
       text-align: center;
     }
-    #startButton {
-      padding: 10px 20px;
-      font-size: 18px;
-    }
-    .labels, .values {
-      font-size: 14px;
+    .controls {
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
     }
-    .values {
-      margin-left: 20px;  /* Adds space to the left of the values */
-    }
-    .info {
+    .threshold-group {
       display: flex;
-      justify-content: flex-start;
-      font-size: 24px;
-      margin-top: 10px;
+      align-items: center;
+      gap: 5px;
     }
-    .label {
-      color: black;
-      font-weight: bold;
+    .display {
+      text-align: center;
+      margin-bottom: 20px;
     }
-    .value {
-      color: green;
+    .chart-container {
+      position: relative;
+      height: 400px;
+      background-color: white;
+      transition: background-color 0.3s ease;
     }
-    .input-group.mb-3 {
-      padding-top: 20px;
-    }
-    canvas {
-      max-height: 70vh;
-      width: auto;
-    }
-    #maxLevelSpinner {
-      max-width: 48px;
+    @media (max-width: 600px) {
+      .chart-container {
+        height: 300px;
+      }
     }
   </style>
 </head>
 <body>
-  <button id="microphoneButton">Start Microphone</button>
-  <div class="input-group mb-3">
-    <div class="input-group-prepend">
-      <span class="input-group-text">Max Level</span>
+  <div class="container">
+    <h1>Sound Level Meter</h1>
+    <div class="controls">
+      <button id="toggleMic">Start Microphone</button>
+      <div class="threshold-group">
+        <label for="thresholdInput">Max Sound Level:</label>
+        <input type="number" id="thresholdInput" min="0" max="90" value="38">
+        <button id="updateThreshold">Update</button>
+      </div>
     </div>
-
-    <!--
-    <div class="qty mt-5">
-      <span class="minus bg-dark">-</span>
-      <input type="number" id="maxLevelSpinner" class="count" name="maxSoundLevel" value="10">
-      <span class="plus bg-dark">+</span>
+    <div class="display">
+      <p>Current Sound Level: <span id="currentLevel">0</span> dB</p>
+      <p>Configured Threshold: <span id="currentThreshold">38</span> dB</p>
     </div>
-     --> 
-     
-    <input type="number" id="maxLevelSpinner" class="form-control" step="5" min="0" max="80" value="30">
+    <div class="chart-container" id="chartContainer">
+      <canvas id="soundChart"></canvas>
+    </div>
+    <p id="errorMessage" style="color: red; text-align:center;"></p>
 
   </div>
-    <div class="info">
-    <div class="labels">
-      <div class="label">Sound Level</div>
-      <div class="label">MAX Level</div>
-    </div>
-    <div class="values">
-      <div class="value" id="soundLevel"></div>
-      <div class="value" id="maxSoundLevel"></div>
-    </div>
-  </div>
-  <canvas id="soundLevelChart"></canvas>
-  <script src="script.js"></script>
+
+  <script>
+    let audioContext, analyser, microphone;
+    let isRunning = false;
+    let updateInterval;
+    let startTime;
+
+    const maxSamples = 240;
+    const timeLabels = [];
+    const soundData = [];
+
+    const toggleButton = document.getElementById('toggleMic');
+    const thresholdInput = document.getElementById('thresholdInput');
+    const updateThresholdButton = document.getElementById('updateThreshold');
+    const currentLevelDisplay = document.getElementById('currentLevel');
+    const currentThresholdDisplay = document.getElementById('currentThreshold');
+    const chartContainer = document.getElementById('chartContainer');
+    const errorMessage = document.getElementById('errorMessage');
+
+    let chart;
+
+    function initChart() {
+      const ctx = document.getElementById('soundChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: timeLabels,
+          datasets: [
+            {
+              label: 'Sound Level (dB)',
+              data: soundData,
+              backgroundColor: 'rgba(75, 192, 192, 0.5)',
+              borderWidth: 1
+            },
+            {
+              label: 'Threshold',
+              // Initially match threshold to default input, but array is empty until we push time labels
+              data: [],
+              type: 'line',
+              borderColor: 'red',
+              borderWidth: 2,
+              fill: false,
+              pointRadius: 0,
+              tension: 0
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          animation: false,
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Elapsed Time (s)'
+              }
+            },
+            y: {
+              min: 0,
+              max: 100,
+              title: {
+                display: true,
+                text: 'Sound Level (dB)'
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            },
+            legend: {
+              display: true
+            }
+          }
+        });
+    }
+
+    function updateThresholdDataset() {
+      // Update the displayed threshold text
+      const threshold = parseInt(thresholdInput.value);
+      currentThresholdDisplay.textContent = threshold;
+
+      // Also update the threshold dataset if we have time labels
+      if (chart && timeLabels.length > 0) {
+        chart.data.datasets[1].data = timeLabels.map(() => threshold);
+        chart.update();
+      }
+    }
+
+    function updateChart(newSoundLevel, elapsedTime) {
+      // Add new label and sound data
+      timeLabels.push(elapsedTime.toFixed(1));
+      soundData.push(newSoundLevel);
+
+      // Remove oldest data if we exceed the buffer
+      if (timeLabels.length > maxSamples) {
+        timeLabels.shift();
+        soundData.shift();
+      }
+
+      // Keep the threshold line in sync with the new labels
+      const threshold = parseInt(thresholdInput.value);
+      chart.data.datasets[1].data = timeLabels.map(() => threshold);
+
+      // Update chart labels and data
+      chart.data.labels = timeLabels;
+      chart.data.datasets[0].data = soundData;
+      chart.update();
+    }
+
+    function processAudio() {
+      const bufferLength = analyser.frequencyBinCount;
+      const frequencyData = new Uint8Array(bufferLength);
+      analyser.getByteFrequencyData(frequencyData);
+
+      // Compute RMS (Root Mean Square)
+      let sumSquares = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sumSquares += frequencyData[i] ** 2;
+      }
+      let rms = Math.sqrt(sumSquares / bufferLength);
+
+      // Convert RMS to Decibels (dB SPL)
+      let soundLevel = 20 * Math.log10(rms + 1);
+
+      // Scale it to a more realistic dB range
+      let scaledLevel = Math.max(20, Math.min(55, (soundLevel * 0.6) + 20));
+
+      return scaledLevel;
+    }
+
+    async function startAudio() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        microphone = audioContext.createMediaStreamSource(stream);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 1024;
+        microphone.connect(analyser);
+        startTime = audioContext.currentTime;
+
+        // Periodically update
+        updateInterval = setInterval(() => {
+          const soundLevel = processAudio();
+          currentLevelDisplay.textContent = soundLevel.toFixed(2);
+          const elapsedTime = audioContext.currentTime - startTime;
+          updateChart(soundLevel, elapsedTime);
+
+          // Alert coloring
+          const threshold = parseInt(thresholdInput.value);
+          chartContainer.style.backgroundColor =
+            soundLevel > threshold ? 'indianred' : 'white';
+        }, 250);
+      } catch (err) {
+        console.error(err);
+        errorMessage.textContent = 'Error accessing microphone: ' + err.message;
+      }
+    }
+
+    function stopAudio() {
+      if (audioContext) {
+        audioContext.close();
+      }
+      if (updateInterval) {
+        clearInterval(updateInterval);
+      }
+      location.reload();
+    }
+
+    // Button event handlers
+    toggleButton.addEventListener('click', () => {
+      if (!isRunning) {
+        toggleButton.textContent = 'Stop Microphone';
+        isRunning = true;
+        startAudio();
+      } else {
+        toggleButton.textContent = 'Start Microphone';
+        isRunning = false;
+        stopAudio();
+      }
+    });
+
+    updateThresholdButton.addEventListener('click', updateThresholdDataset);
+
+    // Initialize chart on page load
+    initChart();
+  </script>
 </body>
 </html>
