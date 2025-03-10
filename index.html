@@ -71,7 +71,6 @@
       <canvas id="soundChart"></canvas>
     </div>
     <p id="errorMessage" style="color: red; text-align:center;"></p>
-
   </div>
 
   <script>
@@ -79,10 +78,10 @@
     let isRunning = false;
     let updateInterval;
     let startTime;
-
     const maxSamples = 240;
     const timeLabels = [];
     const soundData = [];
+    let thresholdValue = 38; // Default threshold value
 
     const toggleButton = document.getElementById('toggleMic');
     const thresholdInput = document.getElementById('thresholdInput');
@@ -93,7 +92,6 @@
     const errorMessage = document.getElementById('errorMessage');
 
     let chart;
-
     function initChart() {
       const ctx = document.getElementById('soundChart').getContext('2d');
       chart = new Chart(ctx, {
@@ -109,8 +107,7 @@
             },
             {
               label: 'Threshold',
-              // Initially match threshold to default input, but array is empty until we push time labels
-              data: [],
+              data: new Array(maxSamples).fill(thresholdValue), // Ensure threshold line is visible
               type: 'line',
               borderColor: 'red',
               borderWidth: 2,
@@ -148,39 +145,33 @@
               display: true
             }
           }
-        });
+        }
+      });
     }
 
     function updateThresholdDataset() {
-      // Update the displayed threshold text
-      const threshold = parseInt(thresholdInput.value);
-      currentThresholdDisplay.textContent = threshold;
+      thresholdValue = parseInt(thresholdInput.value);
+      currentThresholdDisplay.textContent = thresholdValue;
 
-      // Also update the threshold dataset if we have time labels
-      if (chart && timeLabels.length > 0) {
-        chart.data.datasets[1].data = timeLabels.map(() => threshold);
+      if (chart) {
+        // Ensure threshold line persists across scrolling
+        chart.data.datasets[1].data = new Array(chart.data.labels.length).fill(thresholdValue);
         chart.update();
       }
     }
 
     function updateChart(newSoundLevel, elapsedTime) {
-      // Add new label and sound data
       timeLabels.push(elapsedTime.toFixed(1));
       soundData.push(newSoundLevel);
 
-      // Remove oldest data if we exceed the buffer
       if (timeLabels.length > maxSamples) {
         timeLabels.shift();
         soundData.shift();
       }
 
-      // Keep the threshold line in sync with the new labels
-      const threshold = parseInt(thresholdInput.value);
-      chart.data.datasets[1].data = timeLabels.map(() => threshold);
-
-      // Update chart labels and data
       chart.data.labels = timeLabels;
       chart.data.datasets[0].data = soundData;
+      chart.data.datasets[1].data = new Array(timeLabels.length).fill(thresholdValue); // Ensure threshold line stays fixed
       chart.update();
     }
 
@@ -189,17 +180,13 @@
       const frequencyData = new Uint8Array(bufferLength);
       analyser.getByteFrequencyData(frequencyData);
 
-      // Compute RMS (Root Mean Square)
       let sumSquares = 0;
       for (let i = 0; i < bufferLength; i++) {
         sumSquares += frequencyData[i] ** 2;
       }
       let rms = Math.sqrt(sumSquares / bufferLength);
 
-      // Convert RMS to Decibels (dB SPL)
       let soundLevel = 20 * Math.log10(rms + 1);
-
-      // Scale it to a more realistic dB range
       let scaledLevel = Math.max(20, Math.min(55, (soundLevel * 0.6) + 20));
 
       return scaledLevel;
@@ -215,17 +202,17 @@
         microphone.connect(analyser);
         startTime = audioContext.currentTime;
 
-        // Periodically update
         updateInterval = setInterval(() => {
           const soundLevel = processAudio();
           currentLevelDisplay.textContent = soundLevel.toFixed(2);
           const elapsedTime = audioContext.currentTime - startTime;
           updateChart(soundLevel, elapsedTime);
 
-          // Alert coloring
-          const threshold = parseInt(thresholdInput.value);
-          chartContainer.style.backgroundColor =
-            soundLevel > threshold ? 'indianred' : 'white';
+          if (soundLevel > thresholdValue) {
+            chartContainer.style.backgroundColor = 'indianred';
+          } else {
+            chartContainer.style.backgroundColor = 'white';
+          }
         }, 250);
       } catch (err) {
         console.error(err);
@@ -243,22 +230,13 @@
       location.reload();
     }
 
-    // Button event handlers
     toggleButton.addEventListener('click', () => {
-      if (!isRunning) {
-        toggleButton.textContent = 'Stop Microphone';
-        isRunning = true;
-        startAudio();
-      } else {
-        toggleButton.textContent = 'Start Microphone';
-        isRunning = false;
-        stopAudio();
-      }
+      isRunning ? stopAudio() : startAudio();
+      isRunning = !isRunning;
     });
 
     updateThresholdButton.addEventListener('click', updateThresholdDataset);
 
-    // Initialize chart on page load
     initChart();
   </script>
 </body>
